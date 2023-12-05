@@ -1,0 +1,19 @@
+<robot name="cylindrical_landmark">
+  <link name="cylinder">
+    <inertial>
+			<mass value="0.3"/>
+			<inertia  ixx="0.002385" ixy="0.00"  ixz="0.00" iyy="0.002385" iyz="0.00" izz="0.00027" />
+		</inertial>
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<cylinder length="HEIGHT" radius="RADIUS"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<cylinder length="HEIGHT" radius="RADIUS"/>
+			</geometry>
+		</collision>
+</robot>
