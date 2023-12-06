@@ -2,19 +2,20 @@ import rospy
 
 import numpy as np
 import time
+import tf2_ros
 
 from gazebo_msgs.srv import GetModelState, SpawnModel
-from geometry_msgs.msg import Pose, PoseStamped, Quaternion
+from geometry_msgs.msg import Pose, PoseStamped, Quaternion, TransformStamped
 from nav_msgs.msg import Path, Odometry
 from landmark_msgs.msg import Landmark, Landmarks
 
 # -- user defined parameters, later will be moved to parameter server --
-landmark_positions = [[0.15, 2], [3, 7], [2, 1], [8, 2]]
+landmark_positions = [[0.15, 2], [3, 6], [2, 1], [8, 2], [-3.12, -6]]
 robot_name = "/"
 scan_range = 7.0
 scan_coverage = [-np.pi/2, np.pi/2]
 obs_noise_var = [0, 0] # range, bearing
-odom_noise_var = [0.00001, 0.00001] # linear_vel, angular_vel
+odom_noise_var = [0.35, 0.1] # linear_vel, angular_vel
 obs_pub_rate = 10
 pose_pub_rate = 100
 odom_pub_rate = 100
@@ -140,7 +141,6 @@ def main():
                 # -- store trajectory --
                 local_pose = PoseStamped()
                 local_pose.pose = robot_pose.pose
-                local_pose.header.frame_id = "base_footprint"
                 robot_trajectory.poses.append(local_pose)
 
                 if len(robot_trajectory.poses) > MAX_TRAJ_LENGTH:
@@ -179,6 +179,22 @@ def main():
             last_pose_pub_time = time.time()
             robot_pose_pub.publish(robot_pose)
             robot_trajectory_pub.publish(robot_trajectory)
+            
+            br = tf2_ros.TransformBroadcaster()
+            t = TransformStamped()
+
+            t.header.stamp = robot_pose.header.stamp
+            t.header.frame_id = "world"
+            t.child_frame_id = "ground_truth_pose"
+            t.transform.translation.x = robot_pose.pose.position.x
+            t.transform.translation.y = robot_pose.pose.position.y
+            t.transform.translation.z = 0.0
+            t.transform.rotation.x = robot_pose.pose.orientation.x
+            t.transform.rotation.y = robot_pose.pose.orientation.y
+            t.transform.rotation.z = robot_pose.pose.orientation.z
+            t.transform.rotation.w = robot_pose.pose.orientation.w
+
+            br.sendTransform(t)
             
         if (time.time() - last_gt_landmarks_pub_time) >= 1:
             last_gt_landmarks_pub_time = time.time()

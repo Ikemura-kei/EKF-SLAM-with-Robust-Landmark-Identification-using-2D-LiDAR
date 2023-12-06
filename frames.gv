@@ -1,0 +1,15 @@
+digraph G {
+"world" -> "odom"[label=" Broadcaster: /world2odom_broadcaster\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"base_footprint" -> "base_link"[label=" Broadcaster: /robot_state_publisher\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"odom" -> "base_footprint"[label=" Broadcaster: /gazebo\nAverage rate: 500.2\nBuffer length: 4.994\nMost recent transform: 23.142\nOldest transform: 18.148\n"];
+"base_link" -> "laser_frame"[label=" Broadcaster: /robot_state_publisher\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"base_link" -> "left_wheel_link"[label=" Broadcaster: /robot_state_publisher\nAverage rate: 50.201\nBuffer length: 4.98\nMost recent transform: 23.132\nOldest transform: 18.152\n"];
+"base_link" -> "rear_caster_base"[label=" Broadcaster: /robot_state_publisher\nAverage rate: 50.201\nBuffer length: 4.98\nMost recent transform: 23.132\nOldest transform: 18.152\n"];
+"rear_caster_base" -> "rear_caster_link"[label=" Broadcaster: /robot_state_publisher\nAverage rate: 50.201\nBuffer length: 4.98\nMost recent transform: 23.132\nOldest transform: 18.152\n"];
+"base_link" -> "right_wheel_link"[label=" Broadcaster: /robot_state_publisher\nAverage rate: 50.201\nBuffer length: 4.98\nMost recent transform: 23.132\nOldest transform: 18.152\n"];
+"world" -> "ground_truth_pose"[label=" Broadcaster: /simulate_node\nAverage rate: 71.486\nBuffer length: 4.966\nMost recent transform: 23.126\nOldest transform: 18.16\n"];
+edge [style=invis];
+ subgraph cluster_legend { style=bold; color=black; label ="view_frames Result";
+"Recorded at time: 23.156"[ shape=plaintext ] ;
+}->"world";
+}
