@@ -30,6 +30,4 @@
         <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
         </node>
     </group>
-
-    <node name="rviz" type="rviz" pkg="rviz" output="screen"/>
 </launch>

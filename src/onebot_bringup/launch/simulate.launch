@@ -1,0 +1,15 @@
+<launch>
+
+<include file="$(find onebot_bringup)/launch/base.launch" />
+
+<node pkg="simulation" name="simulate_node" type="simulate_node.py" output="screen"/>
+
+<node pkg="rqt_robot_steering" name="rqt_robot_steering" type="rqt_robot_steering" />
+
+<node pkg="tf2_ros" type="static_transform_publisher" name="world2odom_broadcaster" args="0 0 0 0 0 0 1 world odom" />
+
+<node name="rviz" type="rviz" pkg="rviz" output="screen" args="-d $(find onebot_bringup)/rviz/simulation.rviz"/>
+
+<node name="visualization" type="visualize_node.py" output="screen" pkg="simulation" />
+
+</launch>
