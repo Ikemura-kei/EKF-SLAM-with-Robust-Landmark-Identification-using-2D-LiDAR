@@ -4,18 +4,21 @@ import numpy as np
 import time
 import tf2_ros
 
-from gazebo_msgs.srv import GetModelState, SpawnModel
-from geometry_msgs.msg import Pose, PoseStamped, Quaternion, TransformStamped
+from gazebo_msgs.srv import GetModelState, SpawnModel, DeleteModel, SetModelState
+from gazebo_msgs.msg import ModelState
+from geometry_msgs.msg import Pose, PoseStamped, Quaternion, TransformStamped, Twist
 from nav_msgs.msg import Path, Odometry
 from landmark_msgs.msg import Landmark, Landmarks
+from std_msgs.msg import Empty
 
 # -- user defined parameters, later will be moved to parameter server --
-landmark_positions = [[0.15, 2], [3, 6], [2, 1], [8, 2], [-3.12, -6]]
+# landmark_positions = [[0.15, 2], [3, 6], [2, 1], [8, 2], [-3.12, -6]]
+landmark_positions = [[2, 1.125], [5.125, 2], [3, -3.75], [-3.12, -6], [0.15, 2]]
 robot_name = "/"
 scan_range = 7.0
-scan_coverage = [-np.pi/2, np.pi/2]
-obs_noise_var = [0, 0] # range, bearing
-odom_noise_var = [0.35, 0.1] # linear_vel, angular_vel
+scan_coverage = [-3*np.pi/4, 3*np.pi/4]
+obs_noise_var = [0.08, 0.01] # range, bearing
+odom_noise_var = [0.55, 0.1] # linear_vel, angular_vel
 obs_pub_rate = 10
 pose_pub_rate = 100
 odom_pub_rate = 100
@@ -35,6 +38,31 @@ last_pose_pub_time = time.time()
 last_obs_pub_time = time.time()
 last_gt_landmarks_pub_time = time.time()
 last_odom_pub_time = time.time()
+robot_urdf = None
+
+# -- callbacks --
+def reset_simulation(msg:Empty):
+    global robot_urdf
+    
+    model_state = ModelState()
+    model_state.model_name = robot_name
+    
+    pose = Pose()
+    pose.orientation.w = 1
+    model_state.pose = pose
+    
+    twist = Twist()
+    model_state.twist = twist
+    
+    model_state.reference_frame = ""
+    
+    rospy.wait_for_service("/gazebo/set_model_state")
+    
+    set_model_state = rospy.ServiceProxy("/gazebo/set_model_state", SetModelState)
+    response = set_model_state(model_state)
+    
+    if not response.success:
+        print("==> Reset robot state failed with {}".format(response.status_message))
 
 # -- helper functions --
 def generate_landmarks(urdf_path, landmark_positions):
@@ -93,7 +121,7 @@ def wrap_bearing(bearing):
     return np.mod(bearing + np.pi, 2 * np.pi) - np.pi
 
 def main():
-    global last_pose_pub_time, last_obs_pub_time, robot_trajectory, last_gt_landmarks_pub_time, last_odom_pub_time
+    global last_pose_pub_time, last_obs_pub_time, robot_trajectory, last_gt_landmarks_pub_time, last_odom_pub_time, robot_urdf
     rospy.init_node("simulate_node")
     
     print("==> Simulate node started")
@@ -105,8 +133,14 @@ def main():
     true_landmark_pub = rospy.Publisher("/ground_truth_landmarks", Landmarks, queue_size=1)
     simulated_odom_pub = rospy.Publisher("/simulated_odometry", Odometry, queue_size=1)
     
+    # -- define subscribers --
+    reset_sim_sub = rospy.Subscriber("/reset_simulation", Empty, reset_simulation)
+    
     # -- create landmarks at specified positions --
     gt_landmarks = generate_landmarks(cylindrical_landmark_template_urdf, landmark_positions)
+    
+    # -- store robot urdf for re-spawning --
+    robot_urdf = rospy.get_param("/robot_description")
         
     rate = rospy.Rate(OPERATION_RATE)
     while not rospy.is_shutdown():
@@ -165,8 +199,8 @@ def main():
                 continue
             
             this_obs = Landmark()
-            this_obs.range = range
-            this_obs.bearing = bearing
+            this_obs.range = range + np.random.normal(0, obs_noise_var[0], 1)
+            this_obs.bearing = bearing + np.random.normal(0, obs_noise_var[1], 1)
             this_obs.id = i
             obs.landmarks.append(this_obs)
             
