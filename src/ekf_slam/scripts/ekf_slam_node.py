@@ -19,9 +19,9 @@ def dead_reckoning(x:np.ndarray, dt:float, u:np.ndarray):
     
     return new_x
 
-def construct_pose_path_msgs(path, cur_state):
+def get_pose_msg(cur_state, stamp):
     pose = PoseStamped()
-    pose.header.stamp = rospy.Time.now()
+    pose.header.stamp = stamp
     pose.header.frame_id = "world"
     pose.pose.position.x = cur_state[0]
     pose.pose.position.y = cur_state[1]
@@ -31,8 +31,13 @@ def construct_pose_path_msgs(path, cur_state):
     pose.pose.orientation.z = q[2]
     pose.pose.orientation.w = q[3]
     
+    return pose
+
+def construct_pose_path_msgs(path, cur_state, stamp):
+    pose = get_pose_msg(cur_state, stamp)
+    
     path.header.frame_id = "world"
-    path.header.stamp = rospy.Time.now()
+    path.header.stamp = stamp
     pose_copy = PoseStamped()
     pose_copy.pose.position.x = pose.pose.position.x
     pose_copy.pose.position.y = pose.pose.position.y
@@ -189,7 +194,7 @@ def correction(mu_t_bar:np.ndarray, cov_t_bar:np.ndarray, z_t:np.ndarray, Q:np.n
 
 # -- callbacks --
 def odometry_cb(msg:Odometry):
-    global lock, prev_state_dr, prev_odom_time, cur_state_dr, cur_state_ekf, prev_state_ekf, prev_cov, cur_cov, R, cur_state_ekf_bar, cur_cov_bar
+    global lock, prev_state_dr, pose_ekf_pub, pose_dr_pub, prev_odom_time, cur_state_dr, cur_state_ekf, prev_state_ekf, prev_cov, cur_cov, R, cur_state_ekf_bar, cur_cov_bar
     
     if prev_odom_time is None:
         prev_odom_time = msg.header.stamp
@@ -213,7 +218,11 @@ def odometry_cb(msg:Odometry):
     cur_state_ekf_bar, cur_cov_bar = prediction(cur_state_ekf_bar, cur_cov_bar, u, dt, R)
     cur_state_ekf = cur_state_ekf_bar
     lock = False
-    # cur_cov_bar = cur_cov
+    
+    ekf_pose = get_pose_msg(cur_state_ekf, msg.header.stamp)
+    pose_ekf_pub.publish(ekf_pose)
+    dr_pose = get_pose_msg(cur_state_dr, msg.header.stamp)
+    pose_dr_pub.publish(dr_pose)
     
 def landmark_obs_cb(msg:Landmarks):
     global lock, prev_state_dr, prev_odom_time, cur_state_dr, cur_state_ekf, prev_state_ekf, prev_cov, cur_cov, R, cur_state_ekf_bar, cur_cov_bar, Q, obs_book
@@ -256,9 +265,9 @@ def main():
     cur_cov_bar[4,4] = 100
     
     # -- create publishers --
-    pose_dr_pub = rospy.Publisher("/dead_reckoning_pose", PoseStamped, queue_size=1)
+    pose_dr_pub = rospy.Publisher("/dead_reckoning_pose", PoseStamped, queue_size=100)
     path_dr_pub = rospy.Publisher("/dead_reckoning_trajectory", Path, queue_size=1)
-    pose_ekf_pub = rospy.Publisher("/ekf_slam_pose", PoseStamped, queue_size=1)
+    pose_ekf_pub = rospy.Publisher("/ekf_slam_pose", PoseStamped, queue_size=100)
     path_ekf_pub = rospy.Publisher("/ekf_slam_trajectory", Path, queue_size=1)
     
     # -- create subscribers --
@@ -268,13 +277,11 @@ def main():
     rate = rospy.Rate(500)
     while not rospy.is_shutdown():
         # -- publish pose and trajectory --
-        pose_dr, path_dr = construct_pose_path_msgs(path_dr, cur_state_dr)
-        pose_ekf, path_ekf = construct_pose_path_msgs(path_ekf, cur_state_ekf)
+        pose_dr, path_dr = construct_pose_path_msgs(path_dr, cur_state_dr, rospy.Time.now())
+        pose_ekf, path_ekf = construct_pose_path_msgs(path_ekf, cur_state_ekf, rospy.Time.now())
         
         path_dr_pub.publish(path_dr)
-        pose_dr_pub.publish(pose_dr)
         path_ekf_pub.publish(path_ekf)
-        pose_ekf_pub.publish(pose_ekf)
         
         rate.sleep()
     

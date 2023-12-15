@@ -17,11 +17,10 @@ landmark_positions = [[2, 1.125], [5.125, 2], [3, -3.75], [-3.12, -6], [0.15, 2]
 robot_name = "/"
 scan_range = 7.0
 scan_coverage = [-3*np.pi/4, 3*np.pi/4]
-obs_noise_var = [0.08, 0.01] # range, bearing
-odom_noise_var = [0.55, 0.1] # linear_vel, angular_vel
+obs_noise_var = [0.08, 0.008] # range, bearing
+odom_noise_var = [0.55, 0.12] # linear_vel, angular_vel
 obs_pub_rate = 10
-pose_pub_rate = 100
-odom_pub_rate = 100
+pose_pub_rate = 70
 cylindrical_landmark_template_urdf = "/home/ikemura/KTH/Research/EKF-SLAM-with-Robust-Landmark-Identification-using-2D-LiDAR/ws/src/simulation/urdf/cylindrical_landmark_template.urdf"
 
 # -- internal constant parameters --
@@ -128,8 +127,8 @@ def main():
     
     # -- define publishers --
     robot_trajectory_pub = rospy.Publisher("/ground_truth_trajectory", Path, queue_size=1)
-    robot_pose_pub = rospy.Publisher("/ground_truth_pose", PoseStamped, queue_size=1)
-    observation_pub = rospy.Publisher("/landmark_obs", Landmarks, queue_size=1)
+    robot_pose_pub = rospy.Publisher("/ground_truth_pose", PoseStamped, queue_size=100)
+    observation_pub = rospy.Publisher("/landmark_obs", Landmarks, queue_size=10)
     true_landmark_pub = rospy.Publisher("/ground_truth_landmarks", Landmarks, queue_size=1)
     simulated_odom_pub = rospy.Publisher("/simulated_odometry", Odometry, queue_size=1)
     
@@ -199,6 +198,7 @@ def main():
                 continue
             
             this_obs = Landmark()
+            # -- add noise --
             this_obs.range = range + np.random.normal(0, obs_noise_var[0], 1)
             this_obs.bearing = bearing + np.random.normal(0, obs_noise_var[1], 1)
             this_obs.id = i
@@ -230,12 +230,11 @@ def main():
 
             br.sendTransform(t)
             
+            simulated_odom_pub.publish(simulated_odometry)
+            
         if (time.time() - last_gt_landmarks_pub_time) >= 1:
             last_gt_landmarks_pub_time = time.time()
             true_landmark_pub.publish(gt_landmarks)
-            
-        if (time.time() - last_odom_pub_time) >= (1.0/odom_pub_rate):
-            simulated_odom_pub.publish(simulated_odometry)
 
 if __name__ == "__main__":
     main()

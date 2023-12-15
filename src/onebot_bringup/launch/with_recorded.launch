@@ -1,0 +1,11 @@
+<launch>
+
+<node name="eval" pkg="simulation" type="evaluate_node.py" output="screen"/>
+
+<node name="ekf_slam" pkg="ekf_slam" type="ekf_slam_node.py" />
+
+<node name="bag" pkg="rosbag" type="play" args="$(find onebot_bringup)/../../bags/test_2023-12-16-05-36-11.bag" launch-prefix="bash -c 'sleep 2; $0 $@' "/>
+
+<node name="rviz" type="rviz" pkg="rviz" output="screen" args="-d $(find onebot_bringup)/rviz/simulation.rviz"/>
+
+</launch>

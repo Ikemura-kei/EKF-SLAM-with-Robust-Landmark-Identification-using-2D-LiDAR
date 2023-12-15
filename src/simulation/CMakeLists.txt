@@ -167,6 +167,7 @@ include_directories(
 catkin_install_python(PROGRAMS
   scripts/simulate_node.py
   scripts/visualize_node.py
+  scripts/evaluate_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
