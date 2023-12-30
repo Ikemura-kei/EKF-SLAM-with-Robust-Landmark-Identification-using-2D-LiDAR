@@ -4,6 +4,7 @@ import rospy
 from landmark_msgs.msg import Landmark, Landmarks
 from nav_msgs.msg import Odometry, Path
 from geometry_msgs.msg import Pose, PoseStamped
+import copy
 
 from tf.transformations import quaternion_from_euler
 
@@ -61,9 +62,9 @@ Q = np.zeros((2,2))
 # -- user defined parameters --
 var_x = 0.003
 var_y = 0.003
-var_theta = 0.005
-var_r = 0.1
-var_phi = 0.05
+var_theta = 0.0055
+var_r = 0.11
+var_phi = 0.07
 
 # -- internal global variables --
 lock = False
@@ -191,6 +192,56 @@ def correction(mu_t_bar:np.ndarray, cov_t_bar:np.ndarray, z_t:np.ndarray, Q:np.n
     cov_t = cov_t_bar
     
     return mu_t, cov_t, obs_book
+def mahalonobis_matching(z_t:np.ndarray, mu_t_bar:np.ndarray, cov_t_bar:np.ndarray, Q:np.ndarray, obs_book:list, mahalonobis_threshold=0.5):
+    assocs = np.zeros((z_t.shape[0]))
+    cur_landmark_num = 0
+    for is_observed in obs_book:
+        if is_observed:
+            cur_landmark_num += 1
+        else:
+            break
+    
+    for j, z_j in enumerate(z_t): # iterate over observation
+        min_m = 1e10
+        for i, is_observed in enumerate(obs_book): # iterate over known landmarks
+            if not is_observed:
+                if min_m > mahalonobis_threshold:
+                    assocs[j] = cur_landmark_num # new observation
+                    cur_landmark_num += 1
+                break
+            # -- compute predicted measurement --
+            delta_x = mu_t_bar[3+2*i] - mu_t_bar[0]
+            delta_y = mu_t_bar[3+2*i+1] - mu_t_bar[1]
+            q = delta_x**2 + delta_y**2
+            sqrt_q = np.sqrt(q)
+            z_t_bar = np.array([sqrt_q, wrap_bearing(np.arctan2(delta_y, delta_x) - mu_t_bar[2])])
+            
+            # -- compute innovation --
+            y_t = (z_j[:2] - z_t_bar)[...,None] # (2, 1)
+            
+            # -- compute Jacobian H --
+            H = np.zeros((2, 2*NUM_LANDMARKS+3))
+            one_over_sqrt_q = 1.0 / sqrt_q
+            one_over_q = 1.0 / q
+            H[0,0] = -delta_x * one_over_sqrt_q
+            H[0,1] = -delta_y * one_over_sqrt_q
+            H[0,2] = 0
+            H[0,3+2*j] = delta_x * one_over_sqrt_q
+            H[0,3+2*j+1] = delta_y * one_over_sqrt_q
+            H[1,0] = delta_y * one_over_q
+            H[1,1] = -delta_x * one_over_q
+            H[1,2] = -1
+            H[1,3+2*j] = -delta_y * one_over_q
+            H[1,3+2*j+1] = delta_x * one_over_q
+            
+            # -- compute mahalonobis distance --
+            S_t = H @ cov_t_bar @ H.T + Q # (2, 2)
+            m = np.squeeze(y_t.T @ np.linalg.inv(S_t) @ y_t)
+            # print("==> GT {}, candidate {}, mah. distance {}".format(z_j[2], i, m))
+            if m < min_m:
+                min_m = m
+                assocs[j] = i
+    return assocs
 
 # -- callbacks --
 def odometry_cb(msg:Odometry):
@@ -229,12 +280,22 @@ def landmark_obs_cb(msg:Landmarks):
     
     # -- prepare observation data --
     num_obs = len(msg.landmarks)
-    z_t = np.zeros((num_obs, 3))
+    z_t = np.zeros((num_obs, 3)) # (range, bearing, associated landmark index)
     for i, landmark in enumerate(msg.landmarks):
         j = int(landmark.id)
         z_t[i][0] = landmark.range
         z_t[i][1] = landmark.bearing
+        # -- groundtruth association --
         z_t[i][2] = j
+    
+    # -- our data association --
+    assocs = mahalonobis_matching(z_t, cur_state_ekf_bar, cur_cov_bar, Q, obs_book, mahalonobis_threshold=0.8)
+    
+    # -- check association performance --
+    for i, pred in enumerate(assocs):
+        if int(pred) != int(z_t[i][2]):
+            print("==> Wrong association! {} misclassified to be {}".format(int(z_t[i][2]), int(pred)))
+        z_t[i][2] = int(pred)
     
     # -- ekf correction --
     while lock:

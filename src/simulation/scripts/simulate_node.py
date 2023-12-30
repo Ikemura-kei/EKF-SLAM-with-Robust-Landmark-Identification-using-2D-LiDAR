@@ -13,7 +13,8 @@ from std_msgs.msg import Empty
 
 # -- user defined parameters, later will be moved to parameter server --
 # landmark_positions = [[0.15, 2], [3, 6], [2, 1], [8, 2], [-3.12, -6]]
-landmark_positions = [[2, 1.125], [5.125, 2], [3, -3.75], [-3.12, -6], [0.15, 2]]
+# landmark_positions = [[2, 1.125], [5.125, 2], [3, -3.75], [-3.12, -6], [0.15, 2]]
+landmark_positions = [[2, 1.125], [0.15, 2], [3, -3.75], [-2.12, -2]]
 robot_name = "/"
 scan_range = 7.0
 scan_coverage = [-3*np.pi/4, 3*np.pi/4]
