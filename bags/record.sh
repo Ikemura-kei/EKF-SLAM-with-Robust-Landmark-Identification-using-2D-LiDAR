@@ -10,4 +10,5 @@ rosbag record -o $1 \
     /ground_truth_landmarks_marker \
     /landmarks_obs_marker \
     /tf \
-    /tf_static
+    /tf_static \
+    /scan

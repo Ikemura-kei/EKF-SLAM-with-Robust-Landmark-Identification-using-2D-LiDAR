@@ -14,7 +14,7 @@ from std_msgs.msg import Empty
 # -- user defined parameters, later will be moved to parameter server --
 # landmark_positions = [[0.15, 2], [3, 6], [2, 1], [8, 2], [-3.12, -6]]
 # landmark_positions = [[2, 1.125], [5.125, 2], [3, -3.75], [-3.12, -6], [0.15, 2]]
-landmark_positions = [[2, 1.125], [0.15, 2], [3, -3.75], [-2.12, -2]]
+landmark_positions = [[5, 1.125], [1.15, 2.2], [3, -3.75], [-2.12, -2.6]]
 robot_name = "/"
 scan_range = 7.0
 scan_coverage = [-3*np.pi/4, 3*np.pi/4]
@@ -23,11 +23,14 @@ odom_noise_var = [0.55, 0.12] # linear_vel, angular_vel
 obs_pub_rate = 10
 pose_pub_rate = 70
 cylindrical_landmark_template_urdf = "/home/ikemura/KTH/Research/EKF-SLAM-with-Robust-Landmark-Identification-using-2D-LiDAR/ws/src/simulation/urdf/cylindrical_landmark_template.urdf"
+cubic_landmark_template_urdf = "/home/ikemura/KTH/Research/EKF-SLAM-with-Robust-Landmark-Identification-using-2D-LiDAR/ws/src/simulation/urdf/cubic_landmark_template.urdf"
 
 # -- internal constant parameters --
 OPERATION_RATE = 125
 LANDMARK_RADIUS = 0.125 # m
 LANDMARK_HEIGHT = 1.8 # m
+LANDMARK_WIDTH = 0.95 # m
+LANDMARK_LENGTH = 0.65 # m
 MAX_TRAJ_LENGTH = 6100
 
 # -- internal global variables --
@@ -65,11 +68,14 @@ def reset_simulation(msg:Empty):
         print("==> Reset robot state failed with {}".format(response.status_message))
 
 # -- helper functions --
-def generate_landmarks(urdf_path, landmark_positions):
+def generate_landmarks(urdf_path, landmark_positions, shape="cylinder"):
     urdf_template = open(urdf_path, "r").read()
-    urdf_template = urdf_template.replace("RADIUS", str(LANDMARK_RADIUS))
-    urdf_template = urdf_template.replace("HEIGHT", str(LANDMARK_HEIGHT))
-    
+    if shape == "cylinder":
+        urdf_template = urdf_template.replace("RADIUS", str(LANDMARK_RADIUS))
+        urdf_template = urdf_template.replace("HEIGHT", str(LANDMARK_HEIGHT))
+    elif shape == "cube":
+        urdf_template = urdf_template.replace("WIDTH", str(LANDMARK_WIDTH))
+        urdf_template = urdf_template.replace("LENGTH", str(LANDMARK_LENGTH))
     gt_landmarks = Landmarks()
     gt_landmarks.header.frame_id = "world"
     
@@ -137,7 +143,8 @@ def main():
     reset_sim_sub = rospy.Subscriber("/reset_simulation", Empty, reset_simulation)
     
     # -- create landmarks at specified positions --
-    gt_landmarks = generate_landmarks(cylindrical_landmark_template_urdf, landmark_positions)
+    # gt_landmarks = generate_landmarks(cylindrical_landmark_template_urdf, landmark_positions, shape="cylinder")
+    gt_landmarks = generate_landmarks(cubic_landmark_template_urdf, landmark_positions, shape="cube")
     
     # -- store robot urdf for re-spawning --
     robot_urdf = rospy.get_param("/robot_description")

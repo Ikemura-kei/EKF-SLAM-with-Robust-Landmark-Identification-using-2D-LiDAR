@@ -4,7 +4,9 @@ import rospy
 from landmark_msgs.msg import Landmark, Landmarks
 from nav_msgs.msg import Odometry, Path
 from geometry_msgs.msg import Pose, PoseStamped
+from sensor_msgs.msg import LaserScan
 import copy
+from scipy.odr import RealData, ODR, Model
 
 from tf.transformations import quaternion_from_euler
 
@@ -68,6 +70,7 @@ var_phi = 0.07
 
 # -- internal global variables --
 lock = False
+rx_cnt = 0
 # -- dead reckoning --
 prev_state_dr = cur_state_dr = np.array([0, 0, 0])
 path_dr = Path()
@@ -274,7 +277,6 @@ def odometry_cb(msg:Odometry):
     pose_ekf_pub.publish(ekf_pose)
     dr_pose = get_pose_msg(cur_state_dr, msg.header.stamp)
     pose_dr_pub.publish(dr_pose)
-    
 def landmark_obs_cb(msg:Landmarks):
     global lock, prev_state_dr, prev_odom_time, cur_state_dr, cur_state_ekf, prev_state_ekf, prev_cov, cur_cov, R, cur_state_ekf_bar, cur_cov_bar, Q, obs_book
     
@@ -305,7 +307,36 @@ def landmark_obs_cb(msg:Landmarks):
     cur_state_ekf_bar = cur_state_ekf
     cur_cov_bar = cur_cov
     lock = False
+def scan_cb(msg:LaserScan):
+    # -- we will be using the current state estimate (specifically, the pose), to transform point clouds from ego frame to global frame --
+    global cur_state_ekf, rx_cnt
+    rx_cnt += 1
     
+    scan: LaserScan = msg
+    
+    ranges = np.array(scan.ranges)
+    bearings = np.arange(scan.angle_min, scan.angle_max+scan.angle_increment, scan.angle_increment)
+    mask = np.isfinite(ranges)
+    
+    # -- get rid of the NaNs and Infs --
+    ranges = ranges[mask==True]
+    bearings = bearings[mask==True]
+    
+    # -- range-bearing data to point cloud --
+    x = ranges * np.cos(bearings)
+    y = ranges * np.sin(bearings)
+    N = len(ranges)
+    point_cloud = np.stack([x, y], axis=-1) # (N, 2)
+    
+    # -- do landmark extraction --
+
+    
+    # -- transform the point cloud from ego-frame to global frame, using the currently estimated position of the robot --
+    
+
+# -- landmark extraction modules --
+
+
 def main():
     global pose_dr_pub, path_dr_pub, prev_state_dr, path_dr, path_ekf, cur_state_dr, cur_state_ekf, pose_ekf_pub, path_ekf_pub, prev_cov, cur_cov, R, Q, cur_state_ekf_bar
     
@@ -333,7 +364,8 @@ def main():
     
     # -- create subscribers --
     odom_sub = rospy.Subscriber("/simulated_odometry", Odometry, odometry_cb)
-    landmark_obs_sub = rospy.Subscriber("/landmark_obs", Landmarks, landmark_obs_cb)
+    # landmark_obs_sub = rospy.Subscriber("/landmark_obs", Landmarks, landmark_obs_cb)
+    scan_sub = rospy.Subscriber("/scan", LaserScan, scan_cb)
     
     rate = rospy.Rate(500)
     while not rospy.is_shutdown():

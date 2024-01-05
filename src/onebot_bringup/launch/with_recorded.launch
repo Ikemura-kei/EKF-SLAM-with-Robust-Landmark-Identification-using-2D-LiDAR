@@ -1,10 +1,10 @@
 <launch>
 
-<node name="eval" pkg="simulation" type="evaluate_node.py" output="screen"/>
+<!-- <node name="eval" pkg="simulation" type="evaluate_node.py" output="screen"/> -->
 
 <node name="ekf_slam" pkg="ekf_slam" type="ekf_slam_node.py" output="screen" />
 
-<node name="bag" pkg="rosbag" type="play" args="$(find onebot_bringup)/../../bags/four_landmarks_2023-12-31-05-33-28.bag" launch-prefix="bash -c 'sleep 2; $0 $@' "/>
+<node name="bag" pkg="rosbag" type="play" args="$(find onebot_bringup)/../../bags/four_cubic_landmarks_2024-01-03-05-09-39.bag" launch-prefix="bash -c 'sleep 2; $0 $@' "/>
 
 <node name="rviz" type="rviz" pkg="rviz" output="screen" args="-d $(find onebot_bringup)/rviz/simulation.rviz"/>
 
