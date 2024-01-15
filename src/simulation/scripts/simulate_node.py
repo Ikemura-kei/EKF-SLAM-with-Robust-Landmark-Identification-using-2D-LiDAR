@@ -14,12 +14,13 @@ from std_msgs.msg import Empty
 # -- user defined parameters, later will be moved to parameter server --
 # landmark_positions = [[0.15, 2], [3, 6], [2, 1], [8, 2], [-3.12, -6]]
 # landmark_positions = [[2, 1.125], [5.125, 2], [3, -3.75], [-3.12, -6], [0.15, 2]]
-landmark_positions = [[5, 1.125], [1.15, 2.2], [3, -3.75], [-2.12, -2.6]]
+landmark_positions = [[5, 1.125], [1.15, 2.2], [3, -3.75], [-2.12, -2.6]] # normal, closed range
+# landmark_positions = [[7, 1.025], [0, -2.2], [1.96, 2.975], [3.5, -2.6], [5.56, 2.46], [5.23, -1.8]] # long range, one road
 robot_name = "/"
 scan_range = 7.0
 scan_coverage = [-3*np.pi/4, 3*np.pi/4]
 obs_noise_var = [0.08, 0.008] # range, bearing
-odom_noise_var = [0.55, 0.12] # linear_vel, angular_vel
+odom_noise_var = [0.7, 0.25] # linear_vel, angular_vel
 obs_pub_rate = 10
 pose_pub_rate = 70
 cylindrical_landmark_template_urdf = "/home/ikemura/KTH/Research/EKF-SLAM-with-Robust-Landmark-Identification-using-2D-LiDAR/ws/src/simulation/urdf/cylindrical_landmark_template.urdf"

@@ -1,0 +1,9 @@
+<launch>
+
+<arg name="bag" default="12.bag" />
+<arg name="save_dir" default="$(find ekf_slam)/../../experiments"/>
+
+<node name="bag" pkg="rosbag" type="play" args="$(arg save_dir)/$(arg bag)" launch-prefix="bash -c 'sleep 2; $0 $@' "/>
+<node name="rviz" type="rviz" pkg="rviz" output="screen" args="-d $(find onebot_bringup)/rviz/no_gt_landmarks.rviz"/>
+
+</launch>

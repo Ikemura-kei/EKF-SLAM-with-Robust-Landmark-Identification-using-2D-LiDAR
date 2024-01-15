@@ -1,11 +1,25 @@
 <launch>
 
-<!-- <node name="eval" pkg="simulation" type="evaluate_node.py" output="screen"/> -->
+<arg name="exp_name" default="16"/>
+<arg name="save_dir" default="$(find ekf_slam)/../../experiments"/>
+<param name="exp_name" value="$(arg exp_name)" />
+<param name="save_dir" value="$(arg save_dir)" />
+
+<node name="eval" pkg="simulation" type="evaluate_node.py" output="screen"/>
 
 <node name="ekf_slam" pkg="ekf_slam" type="ekf_slam_node.py" output="screen" />
 
-<node name="bag" pkg="rosbag" type="play" args="$(find onebot_bringup)/../../bags/four_cubic_landmarks_2024-01-03-05-09-39.bag" launch-prefix="bash -c 'sleep 2; $0 $@' "/>
+<!-- <arg name="bag" default="long_road_straight.bag" /> -->
+<!-- <arg name="bag" default="long_road_squiggl.bag" /> -->
+<arg name="bag" default="circular_landmark_straight.bag" />
+<!-- <arg name="bag" default="circular_landmark_squiggl.bag" /> -->
+<!-- <arg name="bag" default="short_env_circle.bag" /> -->
+<!-- <node name="bag" pkg="rosbag" type="play" args="$(find onebot_bringup)/../../bags/oh_my_god_2024-01-14-18-16-33.bag" launch-prefix="bash -c 'sleep 2; $0 $@' "/> -->
+<node name="bag" pkg="rosbag" type="play" args="$(find onebot_bringup)/../../bags/$(arg bag)" launch-prefix="bash -c 'sleep 2; $0 $@' "/>
 
-<node name="rviz" type="rviz" pkg="rviz" output="screen" args="-d $(find onebot_bringup)/rviz/simulation.rviz"/>
+<!-- <node name="rviz" type="rviz" pkg="rviz" output="screen" args="-d $(find onebot_bringup)/rviz/simulation.rviz"/> -->
+<node name="rviz" type="rviz" pkg="rviz" output="screen" args="-d $(find onebot_bringup)/rviz/no_gt_landmarks.rviz"/>
+
+<node name="record" type="record" pkg="rosbag" args="-o $(arg save_dir)/$(arg exp_name).bag /ground_truth_trajectory /ground_truth_pose_marker /tf /tf_static /scan_repub /dead_reckoning_trajectory /ekf_slam_trajectory /fitted_landmark_markers /fitted_landmark_position_marker"/>
 
 </launch>

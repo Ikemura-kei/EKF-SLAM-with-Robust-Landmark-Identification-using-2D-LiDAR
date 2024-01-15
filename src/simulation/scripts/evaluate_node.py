@@ -2,6 +2,7 @@ import rospy
 from geometry_msgs.msg import Pose, PoseStamped, Quaternion
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 # -- internal global variables --
 gt_poses = []
@@ -68,6 +69,12 @@ def odom_pose_cb(msg:PoseStamped):
 def main():
     global gt_poses, ekf_poses, odom_poses
     rospy.init_node("evaluate_node")
+    
+    # -- get parameters --
+    experiment_name = str(rospy.get_param("exp_name", 'default'))
+    folder = rospy.get_param("save_dir", '~/')
+    save_dir = os.path.join(folder, experiment_name)
+    os.makedirs(save_dir, exist_ok=True)
     
     # -- create subscribers --
     gt_pose_sub = rospy.Subscriber("/ground_truth_pose", PoseStamped, gt_pose_cb)
@@ -142,8 +149,8 @@ def main():
     ax.plot(t, ekf_err[:,2], "r", label='EKF-SLAM')
     ax.plot(t, dr_err[:,2], "g", label='Dead Reckoning')
     
-    plt.show()
-    
+    plt.savefig(os.path.join(save_dir, "results.png"))
+
     tmp = np.sum((ekf_err[:,:2] ** 2), axis=-1)
     ATE_pos_ekf = np.mean(tmp)
     
@@ -153,7 +160,10 @@ def main():
     ATE_rot_ekf = np.mean(ekf_err[:,2])
     ATE_rot_dr = np.mean(dr_err[:,2])
     
-    print("ATE_pos_ekf {}, ATE_pos_dr {}, ATE_rot_ekf {}, ATE_rot_dr {}".format(ATE_pos_ekf, ATE_pos_dr, ATE_rot_ekf, ATE_rot_dr))
+    print("ATE_pos_dr {}\nATE_rot_dr {}\nATE_pos_ekf {}\nATE_rot_ekf {}\n".format(ATE_pos_dr, ATE_rot_dr, ATE_pos_ekf, ATE_rot_ekf))
+    
+    with open(os.path.join(save_dir, "results.txt"), 'w') as f:
+        f.write("\nATE_pos_dr {}\nATE_rot_dr {}\nATE_pos_ekf {}\nATE_rot_ekf {}\n".format(ATE_pos_dr, ATE_rot_dr, ATE_pos_ekf, ATE_rot_ekf))
     
 if __name__ == "__main__":
     main()

@@ -20,9 +20,10 @@
         </inertial>
         <visual>
             <xacro:if value="$(arg mesh_enabled)">
-                <origin xyz="0 0 0" rpy="0 0 0" />
+                <origin xyz="0 0 0" rpy="0 0 3.1415926" />
                 <geometry>
-                    <mesh filename="package://onebot_description/meshes/base_link.dae" />
+                    <!-- <mesh filename="package://onebot_description/meshes/base_link.dae" /> -->
+                    <mesh filename="package://onebot_description/meshes/mice_body_der.stl" />
                 </geometry>
             </xacro:if>
             <xacro:unless value="$(arg mesh_enabled)">
